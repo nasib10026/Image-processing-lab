@@ -33,7 +33,8 @@ def zero_crossing_thresholding(image,t_val):
         for j in range(1, cols - 1):
             neighbors = [image[i - 1, j], image[i + 1, j], image[i, j - 1], image[i, j + 1]]
             if any(np.sign(image[i, j]) != np.sign(neighbor) for neighbor in neighbors):
-                 zero_crossing_image[i, j] = 255
+                 if image[i,j]>8:
+                     zero_crossing_image[i, j] = 255
             else:
                 zero_crossing_image[i,j] = 0    
 
