@@ -1,0 +1,102 @@
+import cv2 
+import matplotlib.pyplot as plt
+import numpy as np
+
+img = cv2.imread("Lab3/color_img.jpg")
+
+img_red, img_green, img_blue = cv2.split(img)
+
+r = img.shape[0]
+c = img.shape[1]
+
+fig1 = plt.figure(1)
+plt.title("Input_Histo")
+plt.hist(img_red.ravel(),256,[0,256])
+plt.show()
+
+
+# PDF red_img
+hist = np.zeros(256)
+for i in range(r):
+    for j in range(c):
+        inten = img_red[i,j]
+        hist[inten] += 1
+PDF = hist/(r*c)
+
+# print(pdf)
+fig2 = plt.figure(2)
+plt.title("PDF")
+plt.plot(PDF)
+plt.show()
+
+# CDF
+
+CDF = np.zeros(256)
+temp = 0
+for i in range(256):
+    temp += PDF[i]
+    CDF[i] = temp
+CDF *= 255
+fig3 = plt.figure(3)
+plt.title("CDF")
+plt.plot(CDF)
+plt.show()
+
+# O/P
+out = np.zeros((r,c))
+# same size
+for i in range(r):
+    for j in range(c):
+        inten = img_red[i,j]
+        p = np.round(CDF[inten])
+        out[i,j] = p
+
+out = cv2.normalize(out, None, 0, 1, cv2.NORM_MINMAX)
+
+out = out * 255
+out = out.astype(np.uint8)
+cv2.imshow("Output",out)
+cv2.waitKey(0)
+output_histogram = np.zeros(256)
+fig4 = plt.figure(4)
+plt.title("Output_Histo")
+plt.hist(out.ravel(),256,[0,256])
+plt.show()
+
+
+# again
+output_hist = np.zeros(256)
+for i in range(r):
+    for j in range(c):
+        inten = out[i,j]
+        output_hist[inten] += 1
+PDF = output_hist/(r*c)
+# print(pdf)
+fig5 = plt.figure(5)
+plt.title("Output_PDF")
+plt.plot(PDF)
+plt.show()
+
+# CDF
+
+CDF = np.zeros(256)
+temp = 0
+for i in range(256):
+    temp += PDF[i]
+    CDF[i] = temp
+CDF *= 255
+fig3 = plt.figure(3)
+plt.title("Output_CDF")
+plt.plot(CDF)
+plt.show()
+
+
+
+
+
+
+
+
+
+
+

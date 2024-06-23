@@ -1,0 +1,170 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+
+
+def erlang_distribution(k, lembda):
+    mu = 1 / lembda
+    a = (mu ** k) * math.factorial(k - 1)
+    
+    er_output = [(x ** (k - 1)) * np.exp(-x / mu) / a for x in range(256)]
+    
+    return np.array(er_output, dtype=np.float32)
+
+
+def compute_histogram(img):
+    histogram = np.zeros(256, dtype=np.float32)
+    
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            px = img[i, j]
+            histogram[px] += 1
+            
+    return histogram
+
+def compute_pdf(histogram, size):
+    pdf = np.zeros(256, dtype=np.float32)
+    
+    for i in range(256):
+        pdf[i] = histogram[i] / size
+            
+    return pdf
+
+def compute_cdf(pdf):
+    cdf = np.zeros(256, dtype=np.float32)
+    cdf[0] = pdf[0]
+    
+    for i in range(1, 256):
+        cdf[i] = pdf[i] + cdf[i - 1]
+            
+    return cdf
+
+def map_cdf_to_new_values(cdf):
+    rounded_cdf = np.zeros(256, dtype=np.uint32)
+    
+    for i in range(256):
+        rounded_cdf[i] = round(cdf[i] * 255)
+            
+    return rounded_cdf
+
+def create_equalized_image(img, rounded_cdf):
+    equalized_image = np.zeros_like(img)
+    
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            equalized_image[i, j] = rounded_cdf[img[i, j]]
+            
+    return equalized_image
+
+def create_new_histogram(histogram, rounded_cdf):
+    new_hist = np.zeros(256, dtype=np.float32)
+    
+    for i in range(256):
+        new_hist[rounded_cdf[i]] = histogram[i]
+            
+    return new_hist
+
+def histogram_equalization(img):
+    histogram = compute_histogram(img)
+    size = img.shape[0] * img.shape[1]
+    
+    pdf = compute_pdf(histogram, size)
+    cdf = compute_cdf(pdf)
+    rounded_cdf = map_cdf_to_new_values(cdf)
+    
+    equalized_image = create_equalized_image(img, rounded_cdf)
+    new_hist = create_new_histogram(histogram, rounded_cdf)
+    
+    return pdf, rounded_cdf, equalized_image, new_hist
+
+    
+
+img = cv2.imread('/Users/rakibulnasib/Desktop/image/Lab3/histogram.jpeg',cv2.IMREAD_GRAYSCALE)
+shape = int(input("Enter Shape parameter (k): "))
+scale = float(input("Enter Scale parameter(lembda): "))
+
+pdf,cdf,equalized_image,mp_func = histogram_equalization(img)
+
+er_distribution = erlang_distribution(shape, scale) 
+
+er_pdf = er_distribution / np.sum(er_distribution)
+
+er_cdf = np.zeros(256,dtype=np.float32)
+
+er_cdf[0]= er_pdf[0]
+
+for i in range(1,256):
+    er_cdf[i] =er_pdf[i] + er_cdf[i-1]
+
+for  i in range(0,256):
+    er_cdf[i] = round(er_cdf[i]*255)
+
+plt.subplot(2,2,1)
+plt.title("target pdf")
+plt.plot(er_pdf)
+
+plt.subplot(2,2,2)
+plt.title("target cdf")
+plt.plot(er_cdf)
+plt.show()
+
+new_intensity = np.zeros(256,dtype = np.float32)
+
+for i in range(256):
+    x = (np.abs(er_cdf-cdf[i])).argmin()
+    new_intensity[i] = x
+
+# for i in range(256):
+#   min_index = None
+#   min_value = float('inf')  # Set initial min value to positive infinity
+#   for j in range(256):
+#     abs_diff = np.abs(e_cdf - cdf[j])
+#     if abs_diff < min_value:
+#       min_value = abs_diff
+#       min_index = j
+#   new_intensity[i] = min_index
+
+
+output = np.zeros_like(img)
+
+for i in range(img.shape[0]):
+    for j in range(img.shape[1]):
+        output[i,j] = new_intensity[img[i,j]]
+
+o_pdf,o_cdf,o_equalized_image,o_mp_func = histogram_equalization(output)
+
+fig, axs = plt.subplots(2, 3, figsize=(15, 10))  
+
+plt.subplot(2, 3, 1)
+plt.title("input histogram")
+plt.hist(img.ravel(), 256, [0, 255])
+
+plt.subplot(2, 3, 2)
+plt.title("pdf of input image")
+plt.plot(pdf)
+
+plt.subplot(2, 3, 3)
+plt.title("cdf of input image")
+plt.plot(cdf)
+
+plt.subplot(2, 3, 4)
+plt.title("output histogram")
+plt.hist(output.ravel(), 256, [0, 255])
+
+plt.subplot(2, 3, 5)
+plt.title("pdf of output image")
+plt.plot(o_pdf)
+
+plt.subplot(2, 3, 6)
+plt.title("cdf of output image")
+plt.plot(o_cdf)
+
+plt.show()
+
+cv2.imshow("input_image", img)
+cv2.imshow("Equalized_image", equalized_image)
+cv2.imshow("output", output)
+cv2.imshow("output_equalized_img", o_equalized_image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
