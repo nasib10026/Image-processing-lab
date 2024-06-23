@@ -1,0 +1,1 @@
+ zero_crossing_image[i, j] = 255
